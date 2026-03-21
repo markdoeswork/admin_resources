@@ -1,0 +1,133 @@
+<div class="admin-header">
+  <h1><%= model_name %> #<%= @resource.id %></h1>
+  <div class="admin-actions">
+    <%= link_to "Edit", admin_path_for(model_name, :edit, @resource), class: "admin-btn admin-btn-primary" %>
+    <%= link_to "Back to list", admin_path_for(model_name), class: "admin-btn admin-btn-secondary" %>
+    <%= button_to "Delete", admin_path_for(model_name, :show, @resource),
+        method: :delete,
+        class: "admin-btn admin-btn-danger",
+        data: { turbo_confirm: "Are you sure you want to delete this #{model_name.downcase}?" } %>
+  </div>
+</div>
+
+<div class="admin-card">
+  <% model_class.column_names.each do |col| %>
+    <div class="admin-detail-row">
+      <div class="admin-detail-label"><%= col.titleize %></div>
+      <div class="admin-detail-value">
+        <% display, link = admin_value_display(@resource, col) %>
+        <% column_type = model_class.columns_hash[col]&.type %>
+        <% if display.nil? %>
+          <em style="color: #999;">nil</em>
+        <% elsif %w[params data].include?(col) || column_type == :json || column_type == :jsonb %>
+          <pre style="margin: 0; font-size: 0.85rem; background: #f5f5f5; padding: 0.5rem; border-radius: 4px; overflow-x: auto;"><%= JSON.pretty_generate(display) rescue display %></pre>
+        <% elsif display.is_a?(Time) || display.is_a?(DateTime) %>
+          <%= display.strftime("%Y-%m-%d %H:%M:%S") %>
+        <% elsif display.is_a?(TrueClass) || display.is_a?(FalseClass) %>
+          <%= display ? "Yes" : "No" %>
+        <% elsif link %>
+          <%= link_to display, link %>
+        <% else %>
+          <%= display %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<%# Display has_one associations %>
+<% model_class.reflect_on_all_associations(:has_one).each do |assoc| %>
+  <% record = @resource.send(assoc.name) %>
+  <% next if record.nil? %>
+
+  <div style="margin-top: 2rem;">
+    <div class="admin-header">
+      <h2><%= assoc.name.to_s.titleize %></h2>
+      <% if AdminResources.model_names.include?(assoc.klass.name) %>
+        <div class="admin-actions">
+          <%= link_to "View", admin_path_for(assoc.klass.name, :show, record), class: "admin-btn admin-btn-secondary" %>
+          <%= link_to "Edit", admin_path_for(assoc.klass.name, :edit, record), class: "admin-btn admin-btn-secondary" %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="admin-card">
+      <% assoc.klass.column_names.each do |col| %>
+        <div class="admin-detail-row">
+          <div class="admin-detail-label"><%= col.titleize %></div>
+          <div class="admin-detail-value">
+            <% display, link = admin_value_display(record, col) %>
+            <% if display.nil? %>
+              <em style="color: #999;">nil</em>
+            <% elsif display.is_a?(Time) || display.is_a?(DateTime) %>
+              <%= display.strftime("%Y-%m-%d %H:%M:%S") %>
+            <% elsif display.is_a?(TrueClass) || display.is_a?(FalseClass) %>
+              <%= display ? "Yes" : "No" %>
+            <% elsif link %>
+              <%= link_to display, link %>
+            <% else %>
+              <%= truncate(display.to_s, length: 100) %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<%# Display has_many associations %>
+<% model_class.reflect_on_all_associations(:has_many).each do |assoc| %>
+  <% associated_records = @resource.send(assoc.name) %>
+  <% next if associated_records.empty? %>
+
+  <div style="margin-top: 2rem;">
+    <div class="admin-header">
+      <h2><%= assoc.name.to_s.titleize %> (<%= associated_records.count %>)</h2>
+      <% assoc_model = assoc.klass.name %>
+      <% if AdminResources.model_names.include?(assoc_model) %>
+        <%= link_to "New #{assoc_model}", admin_path_for(assoc_model, :new), class: "admin-btn admin-btn-secondary" %>
+      <% end %>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <% assoc.klass.column_names.first(6).each do |col| %>
+            <th><%= col.titleize %></th>
+          <% end %>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% associated_records.limit(20).each do |record| %>
+          <tr>
+            <% assoc.klass.column_names.first(6).each do |col| %>
+              <td>
+                <% display, link = admin_value_display(record, col) %>
+                <% column_type = assoc.klass.columns_hash[col]&.type %>
+                <% if col == "id" && AdminResources.model_names.include?(assoc.klass.name) %>
+                  <%= link_to record.id, admin_path_for(assoc.klass.name, :show, record) %>
+                <% elsif %w[params data].include?(col) || column_type == :json || column_type == :jsonb %>
+                  <pre style="margin: 0; font-size: 0.75rem; max-width: 300px; overflow-x: auto; white-space: pre-wrap;"><%= JSON.pretty_generate(display) rescue display %></pre>
+                <% elsif link %>
+                  <%= link_to truncate(display.to_s, length: 50), link %>
+                <% else %>
+                  <%= truncate(display.to_s, length: 50) %>
+                <% end %>
+              </td>
+            <% end %>
+            <td class="admin-actions">
+              <% if AdminResources.model_names.include?(assoc.klass.name) %>
+                <%= link_to "View", admin_path_for(assoc.klass.name, :show, record), class: "admin-btn admin-btn-secondary" %>
+                <%= link_to "Edit", admin_path_for(assoc.klass.name, :edit, record), class: "admin-btn admin-btn-secondary" %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <% if associated_records.count > 20 %>
+      <p style="margin-top: 0.5rem; color: #666;">Showing 20 of <%= associated_records.count %> records</p>
+    <% end %>
+  </div>
+<% end %>

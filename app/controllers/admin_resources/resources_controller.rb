@@ -1,0 +1,127 @@
+module AdminResources
+  class ResourcesController < ApplicationController
+    before_action :set_model_class
+    before_action :set_resource, only: %i[show edit update destroy]
+
+    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display
+
+    def index
+      puts "[AdminResources::ResourcesController] index for #{model_name}"
+      @resources = model_class.all.order(id: :desc)
+    end
+
+    def show
+      puts "[AdminResources::ResourcesController] show #{model_name}##{@resource.id}"
+    end
+
+    def new
+      puts "[AdminResources::ResourcesController] new #{model_name}"
+      @resource = model_class.new
+    end
+
+    def create
+      puts "[AdminResources::ResourcesController] create #{model_name}"
+      @resource = model_class.new(resource_params)
+      if @resource.save
+        redirect_to admin_path_for(model_name, :show, @resource), notice: "#{model_name} was successfully created."
+      else
+        render :new, status: :unprocessable_entity
+      end
+    end
+
+    def edit
+      puts "[AdminResources::ResourcesController] edit #{model_name}##{@resource.id}"
+    end
+
+    def update
+      puts "[AdminResources::ResourcesController] update #{model_name}##{@resource.id}"
+      if @resource.update(resource_params)
+        redirect_to admin_path_for(model_name, :show, @resource), notice: "#{model_name} was successfully updated."
+      else
+        render :edit, status: :unprocessable_entity
+      end
+    end
+
+    def destroy
+      puts "[AdminResources::ResourcesController] destroy #{model_name}##{@resource.id}"
+      @resource.destroy
+      redirect_to admin_path_for(model_name, :index), notice: "#{model_name} was successfully deleted."
+    end
+
+    private
+
+    def set_model_class
+      model_param = params[:model]
+      unless AdminResources.model_names.include?(model_param)
+        raise ActiveRecord::RecordNotFound, "Model '#{model_param}' not registered in AdminResources"
+      end
+      @model_class = model_param.constantize
+    end
+
+    def set_resource
+      @resource = model_class.find(params[:id])
+    end
+
+    def model_class
+      @model_class
+    end
+
+    def model_name
+      model_class.name
+    end
+
+    def index_columns
+      config = AdminResources.models[model_name]
+      config&.dig(:columns) || model_class.column_names.first(6)
+    end
+
+    def form_columns
+      model_class.column_names - %w[id created_at updated_at]
+    end
+
+    # Returns [display_text, link_path_or_nil]
+    def admin_value_display(resource, column)
+      unless resource.respond_to?(column)
+        return ["[invalid column: #{column}]", nil]
+      end
+
+      value = resource.send(column)
+      return [nil, nil] if value.nil?
+
+      if column.end_with?("_id") && value.present?
+        assoc_name = column.sub(/_id$/, "")
+        association = resource.class.reflect_on_association(assoc_name.to_sym)
+
+        if association && association.macro == :belongs_to
+          assoc_class = association.klass
+          assoc_model = assoc_class.name
+
+          if AdminResources.model_names.include?(assoc_model)
+            associated_record = assoc_class.find_by(id: value)
+            if associated_record
+              display = "#{assoc_model} ##{value}"
+              display = associated_record.name    if associated_record.respond_to?(:name) && associated_record.name.present?
+              display = associated_record.version if associated_record.respond_to?(:version) && associated_record.version.present?
+              display = associated_record.email   if associated_record.respond_to?(:email) && associated_record.email.present?
+              return [display, admin_path_for(assoc_model, :show, associated_record)]
+            end
+          end
+        end
+      end
+
+      [value, nil]
+    end
+
+    def resource_params
+      permitted = form_columns.map do |col|
+        column = model_class.columns_hash[col]
+        if column&.array?
+          { col.to_sym => [] }
+        else
+          col.to_sym
+        end
+      end
+      params.require(model_class.model_name.param_key).permit(*permitted)
+    end
+  end
+end

@@ -1,0 +1,13 @@
+<div class="admin-header">
+  <h1>Dashboard</h1>
+</div>
+
+<div class="admin-grid">
+  <% @model_counts.each do |model_name, count| %>
+    <div class="admin-card admin-stat">
+      <div class="admin-stat-value"><%= count %></div>
+      <div class="admin-stat-label"><%= model_name.pluralize %></div>
+      <%= link_to "View all", admin_path_for(model_name), class: "admin-btn admin-btn-secondary" %>
+    </div>
+  <% end %>
+</div>

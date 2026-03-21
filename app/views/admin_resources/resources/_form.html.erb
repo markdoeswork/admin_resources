@@ -1,0 +1,54 @@
+<%= form_with model: @resource, url: (@resource.new_record? ? admin_path_for(model_name, :index) : admin_path_for(model_name, :show, @resource)), class: "admin-form" do |form| %>
+  <% if @resource.errors.any? %>
+    <div class="admin-flash alert">
+      <strong><%= pluralize(@resource.errors.count, "error") %> prohibited this <%= model_name.downcase %> from being saved:</strong>
+      <ul>
+        <% @resource.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% form_columns.each do |col| %>
+    <% column = model_class.columns_hash[col] %>
+    <div class="field">
+      <%= form.label col %>
+      <% case column&.type %>
+      <% when :boolean %>
+        <%= form.check_box col %>
+      <% when :text %>
+        <%= form.text_area col, rows: 4 %>
+      <% when :integer, :decimal, :float %>
+        <%= form.number_field col, step: (column.type == :integer ? 1 : 'any') %>
+      <% when :date %>
+        <%= form.date_field col %>
+      <% when :datetime %>
+        <%= form.datetime_local_field col %>
+      <% when :json, :jsonb %>
+        <%= form.text_area col, rows: 4, value: @resource.send(col)&.to_json %>
+      <% else %>
+        <% if col.end_with?('_id') %>
+          <% assoc_name = col.sub(/_id$/, '').classify %>
+          <% assoc_class = assoc_name.safe_constantize %>
+          <% if assoc_class && assoc_class < ActiveRecord::Base %>
+            <%= form.collection_select col, assoc_class.all, :id, :to_s, include_blank: true %>
+          <% else %>
+            <%= form.number_field col %>
+          <% end %>
+        <% elsif col.include?('password') %>
+          <%= form.password_field col %>
+        <% elsif col.include?('email') %>
+          <%= form.email_field col %>
+        <% else %>
+          <%= form.text_field col %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.submit class: "admin-btn admin-btn-primary" %>
+    <%= link_to "Cancel", (@resource.new_record? ? admin_path_for(model_name) : admin_path_for(model_name, :show, @resource)), class: "admin-btn admin-btn-secondary" %>
+  </div>
+<% end %>

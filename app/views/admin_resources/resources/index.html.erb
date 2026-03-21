@@ -1,0 +1,38 @@
+<div class="admin-header">
+  <h1><%= model_name.pluralize %></h1>
+  <%= link_to "New #{model_name}", admin_path_for(model_name, :new), class: "admin-btn admin-btn-primary" %>
+</div>
+
+<table class="admin-table">
+  <thead>
+    <tr>
+      <% index_columns.each do |col| %>
+        <th><%= col.titleize %></th>
+      <% end %>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @resources.each do |resource| %>
+      <tr>
+        <% index_columns.each do |col| %>
+          <td>
+            <% display, link = admin_value_display(resource, col) %>
+            <% column_type = model_class.columns_hash[col]&.type %>
+            <% if %w[params data].include?(col) || column_type == :json || column_type == :jsonb %>
+              <pre style="margin: 0; font-size: 0.75rem; max-width: 300px; overflow-x: auto; white-space: pre-wrap;"><%= JSON.pretty_generate(display.is_a?(String) ? JSON.parse(display) : display) rescue display %></pre>
+            <% elsif link %>
+              <%= link_to truncate(display.to_s, length: 50), link %>
+            <% else %>
+              <%= truncate(display.to_s, length: 50) %>
+            <% end %>
+          </td>
+        <% end %>
+        <td class="admin-actions">
+          <%= link_to "View", admin_path_for(model_name, :show, resource), class: "admin-btn admin-btn-secondary" %>
+          <%= link_to "Edit", admin_path_for(model_name, :edit, resource), class: "admin-btn admin-btn-secondary" %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
