@@ -1,0 +1,32 @@
+<%= form_for admin_user, url: admin_user.new_record? ? admin_resources.admin_users_path : admin_resources.admin_user_path(admin_user), html: { class: "admin-form" } do |f| %>
+  <% if admin_user.errors.any? %>
+    <div class="admin-flash alert">
+      <% admin_user.errors.full_messages.each do |msg| %>
+        <div><%= msg %></div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :email %>
+    <%= f.email_field :email, autocomplete: "off" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :password %>
+    <%= f.password_field :password, autocomplete: "new-password" %>
+    <% if admin_user.persisted? %>
+      <small style="color:#666">Leave blank to keep current password</small>
+    <% end %>
+  </div>
+
+  <div class="field">
+    <%= f.label :password_confirmation %>
+    <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+  </div>
+
+  <div class="admin-actions" style="margin-top:1rem">
+    <%= f.submit admin_user.new_record? ? "Create Admin User" : "Update Admin User", class: "admin-btn admin-btn-primary" %>
+    <%= link_to "Cancel", admin_resources.admin_users_path, class: "admin-btn admin-btn-secondary" %>
+  </div>
+<% end %>

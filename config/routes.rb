@@ -1,6 +1,7 @@
 AdminResources::Engine.routes.draw do
   devise_for :admin_users,
              class_name: "AdminResources::AdminUser",
+             controllers: { sessions: "admin_resources/sessions" },
              module: :devise,
              path: "",
              path_names: { sign_in: "login", sign_out: "logout" }
@@ -11,6 +12,8 @@ AdminResources::Engine.routes.draw do
               controller: "resources",
               defaults: { model: model_name }
   end
+
+  resources :admin_users, only: [:index, :new, :create, :edit, :update, :destroy]
 
   root to: "dashboard#index"
 end

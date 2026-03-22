@@ -1,7 +1,15 @@
 module AdminResources
   class ApplicationController < ActionController::Base
-    before_action :authenticate_admin_resources_admin_user!
+    before_action :authenticate_admin_user!
     layout "admin_resources/admin"
+
+    def after_sign_in_path_for(resource)
+      admin_resources.root_path
+    end
+
+    def after_sign_out_path_for(resource_or_scope)
+      admin_resources.new_admin_user_session_path
+    end
 
     helper_method :admin_models, :admin_path_for
 

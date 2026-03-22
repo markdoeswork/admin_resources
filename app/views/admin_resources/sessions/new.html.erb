@@ -1,0 +1,19 @@
+<h2>Admin Login</h2>
+
+<% if alert %>
+  <div class="alert"><%= alert %></div>
+<% end %>
+
+<%= form_for(resource, as: resource_name, url: admin_resources.admin_user_session_path) do |f| %>
+  <div class="field">
+    <%= f.label :email %>
+    <%= f.email_field :email, autofocus: true, autocomplete: "email" %>
+  </div>
+  <div class="field">
+    <%= f.label :password %>
+    <%= f.password_field :password, autocomplete: "current-password" %>
+  </div>
+  <div class="actions">
+    <%= f.submit "Sign in" %>
+  </div>
+<% end %>

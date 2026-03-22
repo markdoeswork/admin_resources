@@ -1,0 +1,30 @@
+<div class="admin-header">
+  <h1>Admin Users</h1>
+  <%= link_to "New Admin User", admin_resources.new_admin_user_path, class: "admin-btn admin-btn-primary" %>
+</div>
+
+<table class="admin-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Email</th>
+      <th>Created At</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @admin_users.each do |admin_user| %>
+      <tr>
+        <td><%= admin_user.id %></td>
+        <td><%= admin_user.email %></td>
+        <td><%= admin_user.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+        <td class="admin-actions">
+          <%= link_to "Edit", admin_resources.edit_admin_user_path(admin_user), class: "admin-btn admin-btn-secondary" %>
+          <% if admin_user != current_admin_user %>
+            <%= button_to "Delete", admin_resources.admin_user_path(admin_user), method: :delete, class: "admin-btn admin-btn-danger", data: { turbo_confirm: "Delete #{admin_user.email}?" } %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
