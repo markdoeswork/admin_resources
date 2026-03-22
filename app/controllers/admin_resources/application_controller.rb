@@ -21,13 +21,13 @@ module AdminResources
       route_name = model_name.underscore.pluralize
       case action
       when :index
-        send("admin_resources_#{route_name}_path")
+        admin_resources.send("#{route_name}_path")
       when :new
-        send("new_admin_resources_#{route_name.singularize}_path")
+        admin_resources.send("new_#{route_name.singularize}_path")
       when :show
-        send("admin_resources_#{route_name.singularize}_path", resource)
+        admin_resources.send("#{route_name.singularize}_path", resource)
       when :edit
-        send("edit_admin_resources_#{route_name.singularize}_path", resource)
+        admin_resources.send("edit_#{route_name.singularize}_path", resource)
       end
     end
   end
