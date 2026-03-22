@@ -56,10 +56,18 @@
               class: ('active' if params[:model] == model_name) %>
         <% end %>
 
+        <% if admin_custom_pages.any? %>
+          <h3>Tools</h3>
+          <% admin_custom_pages.each do |page| %>
+            <%= link_to "#{page[:icon]} #{page[:label]}".strip, page[:path],
+                class: (request.path.start_with?(page[:path]) ? 'active' : '') %>
+          <% end %>
+        <% end %>
+
         <h3>Account</h3>
         <%= link_to "Admin Users", admin_resources.admin_users_path,
             class: (controller_path == 'admin_resources/admin_users' ? 'active' : '') %>
-        <%= link_to "Sign Out", admin_resources.destroy_admin_user_session_path, data: { turbo_method: :delete } %>
+        <%= button_to "Sign Out", admin_resources.destroy_admin_user_session_path, method: :delete, class: "admin-btn admin-btn-secondary", style: "width:100%;text-align:left;background:none;color:#eee;padding:0.5rem;border-radius:4px;cursor:pointer;" %>
       </nav>
 
       <main class="admin-main">

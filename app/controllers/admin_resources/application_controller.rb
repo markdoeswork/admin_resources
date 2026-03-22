@@ -11,7 +11,11 @@ module AdminResources
       admin_resources.new_admin_user_session_path
     end
 
-    helper_method :admin_models, :admin_path_for
+    helper_method :admin_models, :admin_path_for, :admin_custom_pages
+
+    def admin_custom_pages
+      AdminResources.configuration.custom_pages
+    end
 
     def admin_models
       AdminResources.model_names

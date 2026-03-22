@@ -11,6 +11,7 @@ module AdminResources
     end
 
     def configure
+      @configuration = Configuration.new
       yield configuration
     end
 

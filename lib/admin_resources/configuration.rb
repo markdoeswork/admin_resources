@@ -2,10 +2,11 @@
 
 module AdminResources
   class Configuration
-    attr_reader :models
+    attr_reader :models, :custom_pages
 
     def initialize
       @models = {}
+      @custom_pages = []
     end
 
     # Register a model for admin management
@@ -18,6 +19,12 @@ module AdminResources
 
     def model_names
       @models.keys
+    end
+
+    # Register a custom sidebar page that routes to the host app
+    # Usage: config.add_page "STL Models", path: "/admin/stl_models", icon: "📦"
+    def add_page(label, path:, icon: nil)
+      @custom_pages << { label: label, path: path, icon: icon }
     end
   end
 end
