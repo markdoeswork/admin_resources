@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Mountable Rails engine that auto-generates admin CRUD UI for registered models."
   spec.description = "Mount AdminResources::Engine in your Rails app, configure which models to expose, and get a full admin dashboard with zero boilerplate."
-  spec.homepage = "https://github.com/doeswork/admin_resources"
+  spec.homepage = "https://github.com/markdoeswork/admin_resources"
   spec.required_ruby_version = ">= 3.0.0"
 
   gemspec = File.basename(__FILE__)
