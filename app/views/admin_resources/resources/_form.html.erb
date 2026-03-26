@@ -20,7 +20,11 @@
       <% when :text %>
         <%= form.text_area col, rows: 4 %>
       <% when :integer, :decimal, :float %>
-        <%= form.number_field col, step: (column.type == :integer ? 1 : 'any') %>
+        <% if model_class.defined_enums.key?(col) %>
+          <%= form.select col, model_class.defined_enums[col].keys, include_blank: true %>
+        <% else %>
+          <%= form.number_field col, step: (column.type == :integer ? 1 : 'any') %>
+        <% end %>
       <% when :date %>
         <%= form.date_field col %>
       <% when :datetime %>
