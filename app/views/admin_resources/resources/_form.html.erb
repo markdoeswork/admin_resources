@@ -51,6 +51,22 @@
     </div>
   <% end %>
 
+  <% join_associations.each do |jdef| %>
+    <% assoc_name  = jdef[:association] %>
+    <% param_key   = "#{assoc_name}_ids" %>
+    <% target_class = assoc_name.to_s.classify.safe_constantize %>
+    <% if target_class && target_class < ActiveRecord::Base %>
+      <div class="field">
+        <%= form.label param_key, assoc_name.to_s.humanize %>
+        <% current_ids = @resource.persisted? ? @resource.send(assoc_name).pluck(:id) : [] %>
+        <%= form.collection_select param_key, target_class.all, :id, :to_s,
+              { selected: current_ids, include_blank: false },
+              { multiple: true, size: 6 } %>
+        <small>Hold Ctrl / Cmd to select multiple</small>
+      </div>
+    <% end %>
+  <% end %>
+
   <div class="field">
     <%= form.submit class: "admin-btn admin-btn-primary" %>
     <%= link_to "Cancel", (@resource.new_record? ? admin_path_for(model_name) : admin_path_for(model_name, :show, @resource)), class: "admin-btn admin-btn-secondary" %>

@@ -3,7 +3,7 @@ module AdminResources
     before_action :set_model_class
     before_action :set_resource, only: %i[show edit update destroy]
 
-    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display
+    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display, :join_associations
 
     def index
       puts "[AdminResources::ResourcesController] index for #{model_name}"
@@ -23,6 +23,7 @@ module AdminResources
       puts "[AdminResources::ResourcesController] create #{model_name}"
       @resource = model_class.new(resource_params)
       if @resource.save
+        sync_join_associations
         redirect_to admin_path_for(model_name, :show, @resource), notice: "#{model_name} was successfully created."
       else
         render :new, status: :unprocessable_entity
@@ -36,6 +37,7 @@ module AdminResources
     def update
       puts "[AdminResources::ResourcesController] update #{model_name}##{@resource.id}"
       if @resource.update(resource_params)
+        sync_join_associations
         redirect_to admin_path_for(model_name, :show, @resource), notice: "#{model_name} was successfully updated."
       else
         render :edit, status: :unprocessable_entity
@@ -122,6 +124,35 @@ module AdminResources
         end
       end
       params.require(model_class.model_name.param_key).permit(*permitted)
+    end
+
+    def join_associations
+      AdminResources.models[model_name]&.dig(:has_many_through) || []
+    end
+
+    def sync_join_associations
+      join_associations.each do |jdef|
+        join_model_class = jdef[:join_model].safe_constantize
+        next unless join_model_class
+
+        foreign_key   = jdef[:foreign_key]
+        through_key   = jdef[:through_key]
+        param_key     = "#{jdef[:association]}_ids"
+        submitted_ids = (params[model_class.model_name.param_key] || {})[param_key]
+
+        next if submitted_ids.nil?
+
+        new_ids = Array(submitted_ids).map(&:to_i).reject(&:zero?)
+
+        existing = join_model_class.where(foreign_key => @resource.id)
+        existing_ids = existing.pluck(through_key)
+
+        to_add    = new_ids - existing_ids
+        to_remove = existing_ids - new_ids
+
+        join_model_class.where(foreign_key => @resource.id, through_key => to_remove).destroy_all if to_remove.any?
+        to_add.each { |tid| join_model_class.create!(foreign_key => @resource.id, through_key => tid) }
+      end
     end
   end
 end
