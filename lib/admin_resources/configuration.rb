@@ -13,11 +13,13 @@ module AdminResources
     # Usage: config.register "User", columns: %w[id email created_at]
     # Usage: config.register "User"  (defaults to first 6 columns)
     # Usage: config.register "Product", has_many_through: [{ association: :desk_buddy_versions, join_model: "ProductVersion", foreign_key: :product_id, through_key: :desk_buddy_version_id }]
-    def register(model_name, columns: nil, has_many_through: nil)
+    # Usage: config.register "Order", custom_actions: [{ name: :ship, label: "Mark Shipped", method: :patch, confirm: "Mark this order as shipped?" }]
+    def register(model_name, columns: nil, has_many_through: nil, custom_actions: nil)
       name = model_name.to_s.classify
       @models[name] = {
         columns: columns&.map(&:to_s),
-        has_many_through: has_many_through || []
+        has_many_through: has_many_through || [],
+        custom_actions: custom_actions || []
       }
     end
 

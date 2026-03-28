@@ -31,6 +31,14 @@
         <td class="admin-actions">
           <%= link_to "View", admin_path_for(model_name, :show, resource), class: "admin-btn admin-btn-secondary" %>
           <%= link_to "Edit", admin_path_for(model_name, :edit, resource), class: "admin-btn admin-btn-secondary" %>
+          <% custom_actions.each do |action| %>
+            <% action_path = "/admin/#{model_name.underscore.pluralize}/#{resource.id}/#{action[:name]}" %>
+            <%= button_to action[:label] || action[:name].to_s.titleize,
+                  action_path,
+                  method: (action[:method] || :post),
+                  form: { data: { turbo_confirm: action[:confirm] } },
+                  class: "admin-btn #{action[:class] || 'admin-btn-secondary'}" %>
+          <% end %>
         </td>
       </tr>
     <% end %>

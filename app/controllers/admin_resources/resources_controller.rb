@@ -1,9 +1,9 @@
 module AdminResources
   class ResourcesController < ApplicationController
     before_action :set_model_class
-    before_action :set_resource, only: %i[show edit update destroy]
+    before_action :set_resource, only: %i[show edit update destroy custom_action]
 
-    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display, :join_associations
+    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display, :join_associations, :custom_actions
 
     def index
       puts "[AdminResources::ResourcesController] index for #{model_name}"
@@ -48,6 +48,33 @@ module AdminResources
       puts "[AdminResources::ResourcesController] destroy #{model_name}##{@resource.id}"
       @resource.destroy
       redirect_to admin_path_for(model_name, :index), notice: "#{model_name} was successfully deleted."
+    end
+
+    # Dispatches to a host-app controller action via a configured custom action.
+    # The host app must define a route that this proxies to, specified as `handler`.
+    # If no handler is configured, falls back to calling a same-named method on the resource.
+    def custom_action
+      action_name_param = params[:custom_action]
+      action_config = custom_actions.find { |a| a[:name].to_s == action_name_param }
+      unless action_config
+        redirect_to admin_path_for(model_name, :show, @resource), alert: "Unknown action."
+        return
+      end
+
+      handler = action_config[:handler]
+      if handler
+        # handler is a callable (proc/lambda) that receives (resource, controller)
+        handler.call(@resource, self)
+      else
+        # Default: call a method by the action name on the resource
+        if @resource.respond_to?(action_name_param)
+          @resource.public_send(action_name_param)
+          redirect_to admin_path_for(model_name, :show, @resource),
+                      notice: "#{action_config[:label] || action_name_param} completed."
+        else
+          redirect_to admin_path_for(model_name, :show, @resource), alert: "Action not implemented."
+        end
+      end
     end
 
     private
@@ -128,6 +155,10 @@ module AdminResources
 
     def join_associations
       AdminResources.models[model_name]&.dig(:has_many_through) || []
+    end
+
+    def custom_actions
+      AdminResources.models[model_name]&.dig(:custom_actions) || []
     end
 
     def sync_join_associations
