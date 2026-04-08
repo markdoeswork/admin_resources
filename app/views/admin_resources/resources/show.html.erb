@@ -35,6 +35,38 @@
   <% end %>
 </div>
 
+<%# Display Active Storage attachments %>
+<% model_class.reflect_on_all_associations(:has_many).select { |a| a.options[:class_name] == "ActiveStorage::Attachment" }.each do |assoc| %>
+  <% attachments = @resource.send(assoc.name) %>
+  <% next if attachments.empty? %>
+  <div style="margin-top:2rem">
+    <div class="admin-header">
+      <h2><%= assoc.name.to_s.sub(/_attachments$/, '').titleize %></h2>
+    </div>
+    <div class="admin-card" style="display:flex;flex-wrap:wrap;gap:1rem">
+      <% attachments.each do |att| %>
+        <div style="border:1px solid #e5e5e5;border-radius:6px;overflow:hidden;width:160px">
+          <% blob_url = Rails.application.routes.url_helpers.rails_blob_url(att.blob, only_path: true) %>
+          <% if att.image? %>
+            <%= image_tag blob_url, style: "width:160px;height:120px;object-fit:cover;display:block" %>
+          <% elsif att.video? %>
+            <video style="width:160px;height:120px;object-fit:cover;display:block" controls preload="none">
+              <source src="<%= blob_url %>" type="<%= att.content_type %>">
+            </video>
+          <% else %>
+            <div style="width:160px;height:120px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:0.75rem;color:#666;text-align:center;padding:0.5rem">
+              <%= att.filename %>
+            </div>
+          <% end %>
+          <div style="padding:0.35rem 0.5rem;font-size:0.7rem;color:#666;border-top:1px solid #e5e5e5">
+            <%= att.filename %><br><%= number_to_human_size(att.byte_size) %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
 <%# Display has_one associations %>
 <% model_class.reflect_on_all_associations(:has_one).each do |assoc| %>
   <% record = @resource.send(assoc.name) %>

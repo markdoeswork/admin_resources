@@ -72,7 +72,12 @@
 
       <main class="admin-main">
         <% if notice %>
-          <div class="admin-flash notice"><%= notice %></div>
+          <div class="admin-flash notice">
+            <%= notice %>
+            <% if flash[:new_url] %>
+              &nbsp;· <%= link_to "Add another →", flash[:new_url] %>
+            <% end %>
+          </div>
         <% end %>
         <% if alert %>
           <div class="admin-flash alert"><%= alert %></div>
@@ -81,5 +86,13 @@
         <%= yield %>
       </main>
     </div>
+  <script>
+    document.addEventListener('click', function(e) {
+      var row = e.target.closest('tr[data-href]');
+      if (!row) return;
+      if (e.target.closest('a, button, form')) return;
+      window.location = row.dataset.href;
+    });
+  </script>
   </body>
 </html>

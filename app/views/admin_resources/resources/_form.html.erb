@@ -22,6 +22,14 @@
       <% when :integer, :decimal, :float %>
         <% if model_class.defined_enums.key?(col) %>
           <%= form.select col, model_class.defined_enums[col].keys, include_blank: true %>
+        <% elsif col.end_with?('_id') %>
+          <% assoc_name = col.sub(/_id$/, '').classify %>
+          <% assoc_class = assoc_name.safe_constantize %>
+          <% if assoc_class && assoc_class < ActiveRecord::Base %>
+            <%= form.collection_select col, assoc_class.all, :id, :to_s, { include_blank: true }, {} %>
+          <% else %>
+            <%= form.number_field col, step: 1 %>
+          <% end %>
         <% else %>
           <%= form.number_field col, step: (column.type == :integer ? 1 : 'any') %>
         <% end %>

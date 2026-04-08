@@ -3,11 +3,11 @@ module AdminResources
     before_action :set_model_class
     before_action :set_resource, only: %i[show edit update destroy custom_action]
 
-    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display, :join_associations, :custom_actions
+    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display, :join_associations, :custom_actions, :filter_columns
 
     def index
       puts "[AdminResources::ResourcesController] index for #{model_name}"
-      @resources = model_class.all.order(id: :desc)
+      @resources = filter_resources(model_class.all).order(id: :desc)
     end
 
     def show
@@ -24,6 +24,7 @@ module AdminResources
       @resource = model_class.new(resource_params)
       if @resource.save
         sync_join_associations
+        flash[:new_url] = admin_path_for(model_name, :new)
         redirect_to admin_path_for(model_name, :show, @resource), notice: "#{model_name} was successfully created."
       else
         render :new, status: :unprocessable_entity
@@ -121,17 +122,14 @@ module AdminResources
         assoc_name = column.sub(/_id$/, "")
         association = resource.class.reflect_on_association(assoc_name.to_sym)
 
-        if association && association.macro == :belongs_to
+        if association && association.macro == :belongs_to && !association.options[:polymorphic]
           assoc_class = association.klass
           assoc_model = assoc_class.name
 
           if AdminResources.model_names.include?(assoc_model)
             associated_record = assoc_class.find_by(id: value)
             if associated_record
-              display = "#{assoc_model} ##{value}"
-              display = associated_record.name    if associated_record.respond_to?(:name) && associated_record.name.present?
-              display = associated_record.version if associated_record.respond_to?(:version) && associated_record.version.present?
-              display = associated_record.email   if associated_record.respond_to?(:email) && associated_record.email.present?
+              display = associated_record.to_s
               return [display, admin_path_for(assoc_model, :show, associated_record)]
             end
           end
@@ -159,6 +157,42 @@ module AdminResources
 
     def custom_actions
       AdminResources.models[model_name]&.dig(:custom_actions) || []
+    end
+
+    # Returns only the declared index columns that actually exist as DB columns (excludes virtual/through cols)
+    def filter_columns
+      index_columns.select { |col| model_class.columns_hash[col] }
+    end
+
+    def filter_resources(scope)
+      return scope unless params[:q].is_a?(Hash)
+
+      params[:q].each do |col, value|
+        next if value.blank?
+        next unless filter_columns.include?(col)
+
+        column = model_class.columns_hash[col]
+        next unless column
+
+        case column.type
+        when :string, :text, :citext
+          scope = scope.where("#{model_class.quoted_table_name}.#{connection.quote_column_name(col)} ILIKE ?", "%#{value}%")
+        when :integer, :bigint
+          scope = scope.where(col => value.to_i) if value.match?(/\A-?\d+\z/)
+        when :boolean
+          scope = scope.where(col => ActiveModel::Type::Boolean.new.cast(value)) unless value == "any"
+        when :date, :datetime
+          scope = scope.where(col => value) if value.present?
+        else
+          scope = scope.where(col => value)
+        end
+      end
+
+      scope
+    end
+
+    def connection
+      model_class.connection
     end
 
     def sync_join_associations
