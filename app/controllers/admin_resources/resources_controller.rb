@@ -3,7 +3,7 @@ module AdminResources
     before_action :set_model_class
     before_action :set_resource, only: %i[show edit update destroy custom_action]
 
-    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display, :join_associations, :custom_actions, :filter_columns
+    helper_method :model_class, :model_name, :index_columns, :form_columns, :admin_value_display, :join_associations, :custom_actions, :filter_columns, :attachment_reflections
 
     def index
       puts "[AdminResources::ResourcesController] index for #{model_name}"
@@ -109,6 +109,12 @@ module AdminResources
       model_class.column_names - %w[id created_at updated_at]
     end
 
+    def attachment_reflections
+      return [] unless model_class.respond_to?(:reflect_on_all_attachments)
+
+      model_class.reflect_on_all_attachments
+    end
+
     # Returns [display_text, link_path_or_nil]
     def admin_value_display(resource, column)
       unless resource.respond_to?(column)
@@ -146,6 +152,13 @@ module AdminResources
           { col.to_sym => [] }
         else
           col.to_sym
+        end
+      end
+      attachment_reflections.each do |reflection|
+        if reflection.macro == :has_many_attached
+          permitted << { reflection.name => [] }
+        else
+          permitted << reflection.name
         end
       end
       params.require(model_class.model_name.param_key).permit(*permitted)

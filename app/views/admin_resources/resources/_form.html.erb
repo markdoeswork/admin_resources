@@ -1,4 +1,4 @@
-<%= form_with model: @resource, url: (@resource.new_record? ? admin_path_for(model_name, :index) : admin_path_for(model_name, :show, @resource)), class: "admin-form" do |form| %>
+<%= form_with model: @resource, url: (@resource.new_record? ? admin_path_for(model_name, :index) : admin_path_for(model_name, :show, @resource)), class: "admin-form", html: { multipart: attachment_reflections.any? } do |form| %>
   <% if @resource.errors.any? %>
     <div class="admin-flash alert">
       <strong><%= pluralize(@resource.errors.count, "error") %> prohibited this <%= model_name.downcase %> from being saved:</strong>
@@ -55,6 +55,17 @@
         <% else %>
           <%= form.text_field col %>
         <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% attachment_reflections.each do |reflection| %>
+    <div class="field">
+      <%= form.label reflection.name %>
+      <% if reflection.macro == :has_many_attached %>
+        <%= form.file_field reflection.name, multiple: true %>
+      <% else %>
+        <%= form.file_field reflection.name %>
       <% end %>
     </div>
   <% end %>
